@@ -59,10 +59,7 @@ function renderMessages() {
 
 async function makeReply(prompt) {
   const liveReply = await fetchLiveAIReply(prompt);
-  if (liveReply.reply) return liveReply.reply;
-  if (liveReply.error && isHostedSite()) {
-    return `Fireside AI's real AI connection is not working yet.\n\nSetup issue: ${liveReply.error}\n\nCheck that Netlify has OPENAI_API_KEY saved, then trigger a new deploy.`;
-  }
+  if (liveReply) return liveReply;
 
   const text = prompt.trim();
   const lower = text.toLowerCase();
@@ -105,18 +102,6 @@ async function makeReply(prompt) {
 
   if (lower.includes("write") || lower.includes("paragraph") || lower.includes("essay")) {
     const topic = topicFrom(text);
-    if (topic.includes("space")) {
-      return "Space is the vast area beyond Earth where stars, planets, moons, galaxies, and other objects exist. It is mostly empty, but it is also full of amazing things like glowing stars, spinning planets, and clouds of gas where new stars can form. Scientists study space to learn how the universe began, how planets move, and whether life might exist somewhere beyond Earth.";
-    }
-
-    if (topic.includes("ocean")) {
-      return "The ocean is a huge body of salt water that covers most of Earth. It is home to countless animals and plants, from tiny plankton to giant whales. The ocean also helps control the planet's weather and climate, making it one of the most important parts of life on Earth.";
-    }
-
-    if (topic.includes("ai") || topic.includes("artificial intelligence")) {
-      return "Artificial intelligence is technology that allows computers to perform tasks that usually require human thinking. AI can answer questions, recognize images, write text, translate languages, and help people solve problems. It is useful because it can process information quickly, but people still need to guide it and check its answers.";
-    }
-
     return `Here is a strong starting draft:\n\n${capitalize(topic)} is an important topic because it affects how people think, work, and solve problems. To understand it clearly, it helps to look at the main idea, the reason it matters, and a real example. With those pieces in place, the topic becomes easier to explain and use in everyday life.`;
   }
 
@@ -157,7 +142,7 @@ async function makeReply(prompt) {
 
 function topicFrom(text) {
   return text
-    .replace(/^(explain|what is|how does|how do|tell me about|write|write about|write me|write me about|write a|write an|write me a|write me an|paragraph about|essay about|a paragraph about|an essay about)\s+/i, "")
+    .replace(/^(explain|what is|how does|how do|tell me about|write|write about|paragraph about|essay about)\s+/i, "")
     .replace(/[?.!]+$/g, "")
     .trim() || "This topic";
 }
@@ -173,19 +158,13 @@ async function fetchLiveAIReply(text) {
       }),
     });
 
+    if (!response.ok) return "";
+
     const data = await response.json();
-    if (!response.ok) {
-      return { reply: "", error: data.error || "The AI function returned an error." };
-    }
-
-    return { reply: data.reply || "", error: "" };
-  } catch (error) {
-    return { reply: "", error: error.message || "The AI function could not be reached." };
+    return data.reply || "";
+  } catch {
+    return "";
   }
-}
-
-function isHostedSite() {
-  return !["localhost", "127.0.0.1", ""].includes(window.location.hostname);
 }
 
 function isGreeting(text) {
